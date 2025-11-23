@@ -290,9 +290,9 @@ docker compose logs <service-name>
    - ✅ Comment（コメント）エンティティ
 
 2. **認証機能の実装**
-   - ユーザー登録API
+   - ✅ ユーザー登録API
    - ログインAPI（JWTトークン発行）
-   - パスワードハッシュ化
+   - ✅ パスワードハッシュ化
    - JWT認証フィルター
 
 3. **REST API エンドポイントの実装**
