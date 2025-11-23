@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, getAllPosts, PostResponse } from '@/utils/api'
+import { getCurrentUser, getAllPosts, createPost, PostResponse, PostRequest } from '@/utils/api'
 
 interface User {
   id: number
@@ -19,6 +19,13 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true)
   const [posts, setPosts] = useState<PostResponse[]>([])
   const [isLoadingPosts, setIsLoadingPosts] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [formData, setFormData] = useState<PostRequest>({
+    title: '',
+    content: ''
+  })
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -91,6 +98,55 @@ export default function Home() {
     localStorage.removeItem('user')
     setUser(null)
     router.refresh()
+  }
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+    // エラーをクリア
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormErrors({})
+    setIsSubmitting(true)
+
+    try {
+      const newPost = await createPost(formData)
+      // 投稿一覧を更新
+      setPosts(prev => [newPost, ...prev])
+      // フォームをリセット
+      setFormData({ title: '', content: '' })
+      setShowCreateForm(false)
+    } catch (error) {
+      if (error instanceof Error) {
+        // バリデーションエラーの場合
+        try {
+          const errorObj = JSON.parse(error.message)
+          if (typeof errorObj === 'object') {
+            setFormErrors(errorObj)
+          } else {
+            setFormErrors({ general: error.message })
+          }
+        } catch {
+          setFormErrors({ general: error.message })
+        }
+      } else {
+        setFormErrors({ general: '投稿の作成に失敗しました' })
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -271,6 +327,161 @@ export default function Home() {
               ))}
             </div>
           )}
+
+          {/* 投稿作成フォーム */}
+          <div style={{ marginTop: '3rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2>新規投稿</h2>
+              {!showCreateForm && (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  投稿を作成
+                </button>
+              )}
+            </div>
+
+            {showCreateForm && (
+              <form onSubmit={handleSubmit} style={{
+                background: 'white',
+                padding: '2rem',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                {formErrors.general && (
+                  <div style={{
+                    padding: '1rem',
+                    background: '#f8d7da',
+                    color: '#721c24',
+                    borderRadius: '4px',
+                    marginBottom: '1rem',
+                    border: '1px solid #f5c6cb'
+                  }}>
+                    {formErrors.general}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label htmlFor="title" style={{ 
+                    display: 'block', 
+                    marginBottom: '0.5rem',
+                    fontWeight: '500'
+                  }}>
+                    タイトル
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleFormChange}
+                    required
+                    maxLength={200}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `1px solid ${formErrors.title ? '#dc3545' : '#ddd'}`,
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {formErrors.title && (
+                    <p style={{ color: '#dc3545', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+                      {formErrors.title}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label htmlFor="content" style={{ 
+                    display: 'block', 
+                    marginBottom: '0.5rem',
+                    fontWeight: '500'
+                  }}>
+                    本文
+                  </label>
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={formData.content}
+                    onChange={handleFormChange}
+                    required
+                    rows={6}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: `1px solid ${formErrors.content ? '#dc3545' : '#ddd'}`,
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {formErrors.content && (
+                    <p style={{ color: '#dc3545', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+                      {formErrors.content}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: isSubmitting ? '#ccc' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isSubmitting ? '投稿中...' : '投稿する'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false)
+                      setFormData({ title: '', content: '' })
+                      setFormErrors({})
+                    }}
+                    disabled={isSubmitting}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
     </main>

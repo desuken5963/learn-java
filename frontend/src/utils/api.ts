@@ -30,6 +30,11 @@ export interface ApiError {
   [key: string]: string | undefined;
 }
 
+export interface PostRequest {
+  title: string;
+  content: string;
+}
+
 export interface PostResponse {
   id: number;
   title: string;
@@ -158,6 +163,29 @@ export async function getPostById(id: number): Promise<PostResponse> {
     }
     const errorData: ApiError = await response.json();
     throw new Error(errorData.message || '投稿の取得に失敗しました');
+  }
+  
+  return response.json();
+}
+
+// 認証が必要なAPI: 投稿を作成
+export async function createPost(data: PostRequest): Promise<PostResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || Object.values(errorData).join(', ') || '投稿の作成に失敗しました');
   }
   
   return response.json();
