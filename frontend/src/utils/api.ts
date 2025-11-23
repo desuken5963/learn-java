@@ -140,3 +140,26 @@ export async function getAllPosts(): Promise<PostResponse[]> {
   return response.json();
 }
 
+// 認証が必要なAPI: 投稿詳細を取得
+export async function getPostById(id: number): Promise<PostResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${id}`);
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿が見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || '投稿の取得に失敗しました');
+  }
+  
+  return response.json();
+}
+
