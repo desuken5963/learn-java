@@ -30,6 +30,15 @@ export interface ApiError {
   [key: string]: string | undefined;
 }
 
+export interface PostResponse {
+  id: number;
+  title: string;
+  content: string;
+  author: UserResponse;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // JWTトークンを取得するヘルパー関数
 function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
@@ -106,6 +115,26 @@ export async function getCurrentUser(): Promise<{ username: string; message: str
     }
     const errorData: ApiError = await response.json();
     throw new Error(errorData.message || 'ユーザー情報の取得に失敗しました');
+  }
+  
+  return response.json();
+}
+
+// 認証が必要なAPI: 全投稿一覧を取得
+export async function getAllPosts(): Promise<PostResponse[]> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts`);
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || '投稿の取得に失敗しました');
   }
   
   return response.json();
