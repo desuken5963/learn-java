@@ -6,12 +6,16 @@ import com.bulletinboard.dto.UserResponse;
 import com.bulletinboard.entity.Post;
 import com.bulletinboard.entity.User;
 import com.bulletinboard.exception.AuthenticationException;
+import com.bulletinboard.exception.ResourceNotFoundException;
 import com.bulletinboard.repository.PostRepository;
 import com.bulletinboard.repository.UserRepository;
 import com.bulletinboard.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +47,21 @@ public class PostService {
 
         // レスポンスDTOに変換
         return convertToResponse(savedPost);
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse getPostById(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("投稿が見つかりません"));
+        return convertToResponse(post);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getAllPosts() {
+        List<Post> posts = postRepository.findAll();
+        return posts.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     private PostResponse convertToResponse(Post post) {
