@@ -30,6 +30,33 @@ export interface ApiError {
   [key: string]: string | undefined;
 }
 
+// JWTトークンを取得するヘルパー関数
+function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+}
+
+// 認証が必要なAPIリクエスト用の共通fetch関数
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
 export async function registerUser(data: UserRegistrationRequest): Promise<UserResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -61,6 +88,26 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
     throw new Error(errorData.message || Object.values(errorData).join(', ') || 'ログインに失敗しました');
   }
 
+  return response.json();
+}
+
+// 認証が必要なAPI: 現在のユーザー情報を取得
+export async function getCurrentUser(): Promise<{ username: string; message: string }> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/users/me`);
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || 'ユーザー情報の取得に失敗しました');
+  }
+  
   return response.json();
 }
 

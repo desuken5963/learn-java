@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { getCurrentUser } from '@/utils/api'
 
 interface User {
   id: number
@@ -28,15 +29,25 @@ export default function Home() {
       }
     }
 
-    // ログイン状態を確認
-    const checkLoginStatus = () => {
+    // ログイン状態を確認（サーバー側で検証）
+    const checkLoginStatus = async () => {
       try {
         const token = localStorage.getItem('token')
         const userStr = localStorage.getItem('user')
         
         if (token && userStr) {
-          const userData = JSON.parse(userStr)
-          setUser(userData)
+          // サーバー側でトークンを検証
+          try {
+            const serverUser = await getCurrentUser()
+            // サーバー側の検証が成功した場合、ローカルのユーザー情報を使用
+            const userData = JSON.parse(userStr)
+            setUser(userData)
+          } catch (error) {
+            // サーバー側の検証に失敗した場合（トークンが無効など）
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            setUser(null)
+          }
         } else {
           setUser(null)
         }
