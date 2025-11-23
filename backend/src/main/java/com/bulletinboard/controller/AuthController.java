@@ -1,7 +1,10 @@
 package com.bulletinboard.controller;
 
+import com.bulletinboard.dto.LoginRequest;
+import com.bulletinboard.dto.LoginResponse;
 import com.bulletinboard.dto.UserRegistrationRequest;
 import com.bulletinboard.dto.UserResponse;
+import com.bulletinboard.exception.AuthenticationException;
 import com.bulletinboard.exception.ResourceAlreadyExistsException;
 import com.bulletinboard.service.UserService;
 import jakarta.validation.Valid;
@@ -28,12 +31,26 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = userService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
     @ExceptionHandler(ResourceAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleResourceAlreadyExistsException(
             ResourceAlreadyExistsException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthenticationException(
+            AuthenticationException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
