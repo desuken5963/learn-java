@@ -42,6 +42,14 @@ public class PostController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Long id,
+            @Valid @RequestBody PostRequest request) {
+        PostResponse response = postService.updatePost(id, request);
+        return ResponseEntity.ok(response);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleResourceNotFoundException(
             ResourceNotFoundException ex) {
