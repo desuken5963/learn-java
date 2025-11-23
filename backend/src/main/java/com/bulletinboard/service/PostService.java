@@ -96,6 +96,31 @@ public class PostService {
         return convertToResponse(updatedPost);
     }
 
+    @Transactional
+    public void deletePost(Long id) {
+        // 現在認証されているユーザー名を取得
+        String username = SecurityUtil.getCurrentUsername();
+        if (username == null) {
+            throw new AuthenticationException("認証が必要です");
+        }
+
+        // ユーザーを取得
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AuthenticationException("ユーザーが見つかりません"));
+
+        // 投稿を取得
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("投稿が見つかりません"));
+
+        // 投稿の所有者かどうかを確認
+        if (!post.getAuthor().getId().equals(currentUser.getId())) {
+            throw new AuthenticationException("この投稿を削除する権限がありません");
+        }
+
+        // 投稿を削除
+        postRepository.delete(post);
+    }
+
     private PostResponse convertToResponse(Post post) {
         PostResponse response = new PostResponse();
         response.setId(post.getId());
