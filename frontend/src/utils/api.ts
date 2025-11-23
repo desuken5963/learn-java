@@ -191,3 +191,52 @@ export async function createPost(data: PostRequest): Promise<PostResponse> {
   return response.json();
 }
 
+// 認証が必要なAPI: 投稿を更新
+export async function updatePost(id: number, data: PostRequest): Promise<PostResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿が見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || Object.values(errorData).join(', ') || '投稿の更新に失敗しました');
+  }
+  
+  return response.json();
+}
+
+// 認証が必要なAPI: 投稿を削除
+export async function deletePost(id: number): Promise<void> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${id}`, {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿が見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || '投稿の削除に失敗しました');
+  }
+}
+

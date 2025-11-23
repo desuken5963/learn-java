@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getPostById, PostResponse, getCurrentUser } from '@/utils/api'
+import { getPostById, deletePost, PostResponse, getCurrentUser } from '@/utils/api'
 
 interface User {
   id: number
@@ -68,25 +68,8 @@ export default function PostDetailPage() {
       return
     }
 
-    const token = localStorage.getItem('token')
-    if (!token) {
-      router.push('/login')
-      return
-    }
-
     try {
-      const response = await fetch(`http://localhost:8080/api/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || '削除に失敗しました')
-      }
-
+      await deletePost(Number(postId))
       // 削除成功後、ホームページにリダイレクト
       router.push('/')
     } catch (err) {
