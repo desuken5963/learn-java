@@ -301,3 +301,29 @@ export async function createComment(postId: number, data: CommentRequest): Promi
   return response.json();
 }
 
+// 認証が必要なAPI: コメントを更新
+export async function updateComment(postId: number, commentId: number, data: CommentRequest): Promise<CommentResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿またはコメントが見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || Object.values(errorData).join(', ') || 'コメントの更新に失敗しました');
+  }
+  
+  return response.json();
+}
+
