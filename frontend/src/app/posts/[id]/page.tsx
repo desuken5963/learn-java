@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getPostById, deletePost, PostResponse, getCommentsByPostId, CommentResponse } from '@/utils/api'
+import { getPostById, deletePost, PostResponse, getCommentsByPostId, CommentResponse, createComment } from '@/utils/api'
 
 interface User {
   id: number
@@ -21,6 +21,9 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<CommentResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [commentContent, setCommentContent] = useState('')
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -39,8 +42,7 @@ export default function PostDetailPage() {
         setPost(postData)
 
         // コメント一覧を取得
-        const commentsData = await getCommentsByPostId(Number(postId))
-        setComments(commentsData)
+        await fetchComments()
 
         // 現在のユーザー情報を取得（所有者チェック用）
         try {
@@ -83,6 +85,44 @@ export default function PostDetailPage() {
       } else {
         alert('削除に失敗しました')
       }
+    }
+  }
+
+  const fetchComments = async () => {
+    try {
+      const commentsData = await getCommentsByPostId(Number(postId))
+      setComments(commentsData)
+    } catch (err) {
+      // コメント取得エラーは静かに処理（投稿は表示する）
+      console.error('コメントの取得に失敗しました:', err)
+    }
+  }
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!commentContent.trim()) {
+      setCommentError('コメント内容を入力してください')
+      return
+    }
+
+    try {
+      setIsSubmittingComment(true)
+      setCommentError(null)
+      
+      await createComment(Number(postId), { content: commentContent.trim() })
+      
+      // コメント投稿成功後、フォームをクリアしてコメント一覧を再取得
+      setCommentContent('')
+      await fetchComments()
+    } catch (err) {
+      if (err instanceof Error) {
+        setCommentError(err.message)
+      } else {
+        setCommentError('コメントの投稿に失敗しました')
+      }
+    } finally {
+      setIsSubmittingComment(false)
     }
   }
 
@@ -342,6 +382,82 @@ export default function PostDetailPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* コメント投稿フォーム */}
+      <section style={{
+        marginTop: '2rem',
+        background: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <h2 style={{
+          marginTop: 0,
+          marginBottom: '1.5rem',
+          fontSize: '1.5rem',
+          color: '#333',
+          borderBottom: '2px solid #007bff',
+          paddingBottom: '0.5rem'
+        }}>
+          コメントを投稿
+        </h2>
+        
+        <form onSubmit={handleSubmitComment}>
+          {commentError && (
+            <div style={{
+              padding: '0.75rem',
+              background: '#f8d7da',
+              color: '#721c24',
+              borderRadius: '4px',
+              marginBottom: '1rem',
+              fontSize: '0.875rem'
+            }}>
+              {commentError}
+            </div>
+          )}
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <textarea
+              value={commentContent}
+              onChange={(e) => {
+                setCommentContent(e.target.value)
+                setCommentError(null)
+              }}
+              placeholder="コメントを入力してください..."
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '1rem',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                minHeight: '100px'
+              }}
+              disabled={isSubmittingComment}
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isSubmittingComment || !commentContent.trim()}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: isSubmittingComment || !commentContent.trim() ? '#6c757d' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isSubmittingComment || !commentContent.trim() ? 'not-allowed' : 'pointer',
+              fontWeight: '500',
+              fontSize: '1rem',
+              opacity: isSubmittingComment || !commentContent.trim() ? 0.6 : 1
+            }}
+          >
+            {isSubmittingComment ? '投稿中...' : 'コメントを投稿'}
+          </button>
+        </form>
       </section>
     </main>
   )

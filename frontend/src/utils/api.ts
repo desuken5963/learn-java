@@ -275,3 +275,29 @@ export async function getCommentsByPostId(postId: number): Promise<CommentRespon
   return response.json();
 }
 
+// 認証が必要なAPI: コメントを作成
+export async function createComment(postId: number, data: CommentRequest): Promise<CommentResponse> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿が見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || Object.values(errorData).join(', ') || 'コメントの作成に失敗しました');
+  }
+  
+  return response.json();
+}
+
