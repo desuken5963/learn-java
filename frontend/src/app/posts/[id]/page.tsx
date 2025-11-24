@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getPostById, deletePost, PostResponse, getCurrentUser } from '@/utils/api'
+import { getPostById, deletePost, PostResponse, getCommentsByPostId, CommentResponse } from '@/utils/api'
 
 interface User {
   id: number
@@ -18,6 +18,7 @@ export default function PostDetailPage() {
   const postId = params.id as string
   const [post, setPost] = useState<PostResponse | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [comments, setComments] = useState<CommentResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +37,10 @@ export default function PostDetailPage() {
         // 投稿を取得
         const postData = await getPostById(Number(postId))
         setPost(postData)
+
+        // コメント一覧を取得
+        const commentsData = await getCommentsByPostId(Number(postId))
+        setComments(commentsData)
 
         // 現在のユーザー情報を取得（所有者チェック用）
         try {
@@ -253,6 +258,91 @@ export default function PostDetailPage() {
           </div>
         )}
       </article>
+
+      {/* コメントセクション */}
+      <section style={{
+        marginTop: '2rem',
+        background: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <h2 style={{
+          marginTop: 0,
+          marginBottom: '1.5rem',
+          fontSize: '1.5rem',
+          color: '#333',
+          borderBottom: '2px solid #007bff',
+          paddingBottom: '0.5rem'
+        }}>
+          コメント ({comments.length})
+        </h2>
+
+        {comments.length === 0 ? (
+          <p style={{
+            color: '#666',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            padding: '2rem 0'
+          }}>
+            まだコメントがありません
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                style={{
+                  padding: '1.5rem',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '0.75rem'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <strong style={{ color: '#333', fontSize: '0.95rem' }}>
+                        {comment.author.username}
+                      </strong>
+                      <span style={{
+                        color: '#666',
+                        fontSize: '0.875rem'
+                      }}>
+                        {new Date(comment.createdAt).toLocaleString('ja-JP', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    <div style={{
+                      color: '#333',
+                      lineHeight: '1.6',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}>
+                      {comment.content}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   )
 }
