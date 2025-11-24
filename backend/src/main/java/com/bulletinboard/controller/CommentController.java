@@ -47,6 +47,14 @@ public class CommentController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId) {
+        commentService.deleteComment(postId, commentId);
+        return ResponseEntity.noContent().build();
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleResourceNotFoundException(
             ResourceNotFoundException ex) {
