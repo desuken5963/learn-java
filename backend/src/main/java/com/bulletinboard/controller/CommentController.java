@@ -38,6 +38,15 @@ public class CommentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/{commentId}")
+    public ResponseEntity<CommentResponse> updateComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentRequest request) {
+        CommentResponse response = commentService.updateComment(postId, commentId, request);
+        return ResponseEntity.ok(response);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleResourceNotFoundException(
             ResourceNotFoundException ex) {

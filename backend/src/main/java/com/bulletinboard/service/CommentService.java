@@ -71,6 +71,46 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public CommentResponse updateComment(Long postId, Long commentId, CommentRequest request) {
+        // 現在認証されているユーザー名を取得
+        String username = SecurityUtil.getCurrentUsername();
+        if (username == null) {
+            throw new AuthenticationException("認証が必要です");
+        }
+
+        // ユーザーを取得
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new AuthenticationException("ユーザーが見つかりません"));
+
+        // 投稿の存在確認
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("投稿が見つかりません"));
+
+        // コメントを取得
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("コメントが見つかりません"));
+
+        // コメントが指定された投稿に紐づいているか確認
+        if (!comment.getPost().getId().equals(post.getId())) {
+            throw new ResourceNotFoundException("この投稿にコメントが見つかりません");
+        }
+
+        // コメントの所有者かどうかを確認
+        if (!comment.getAuthor().getId().equals(currentUser.getId())) {
+            throw new AuthenticationException("このコメントを更新する権限がありません");
+        }
+
+        // コメントを更新
+        comment.setContent(request.getContent());
+
+        // コメントを保存
+        Comment updatedComment = commentRepository.save(comment);
+
+        // レスポンスDTOに変換
+        return convertToResponse(updatedComment);
+    }
+
     private CommentResponse convertToResponse(Comment comment) {
         CommentResponse response = new CommentResponse();
         response.setId(comment.getId());
