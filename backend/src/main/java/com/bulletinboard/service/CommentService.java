@@ -16,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -51,6 +54,21 @@ public class CommentService {
 
         // レスポンスDTOに変換
         return convertToResponse(savedComment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getCommentsByPostId(Long postId) {
+        // 投稿の存在確認
+        postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("投稿が見つかりません"));
+
+        // 投稿に紐づくコメントを取得（作成日時の昇順）
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+
+        // レスポンスDTOに変換
+        return comments.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     private CommentResponse convertToResponse(Comment comment) {

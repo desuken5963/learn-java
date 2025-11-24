@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +23,12 @@ import java.util.Map;
 public class CommentController {
 
     private final CommentService commentService;
+
+    @GetMapping
+    public ResponseEntity<List<CommentResponse>> getCommentsByPostId(@PathVariable Long postId) {
+        List<CommentResponse> comments = commentService.getCommentsByPostId(postId);
+        return ResponseEntity.ok(comments);
+    }
 
     @PostMapping
     public ResponseEntity<CommentResponse> createComment(
