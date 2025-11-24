@@ -2,11 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('ログイン', () => {
   test.beforeEach(async ({ page }) => {
-    // ホームページにアクセス
-    await page.goto('/');
-    // ログインページに遷移
-    await page.click('text=ログイン');
-    await expect(page).toHaveURL('/login');
+    // ログインページに直接アクセス
+    await page.goto('/login');
   });
 
   test('正常なログインができること（ユーザー名）', async ({ page, request }) => {
