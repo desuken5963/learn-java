@@ -327,3 +327,26 @@ export async function updateComment(postId: number, commentId: number, data: Com
   return response.json();
 }
 
+// 認証が必要なAPI: コメントを削除
+export async function deleteComment(postId: number, commentId: number): Promise<void> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, {
+    method: 'DELETE',
+  });
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      // 認証エラーの場合、トークンを削除
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      throw new Error('認証が必要です。再度ログインしてください。');
+    }
+    if (response.status === 404) {
+      throw new Error('投稿またはコメントが見つかりません');
+    }
+    const errorData: ApiError = await response.json();
+    throw new Error(errorData.message || 'コメントの削除に失敗しました');
+  }
+}
+

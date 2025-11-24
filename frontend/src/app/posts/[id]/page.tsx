@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { getPostById, deletePost, PostResponse, getCommentsByPostId, CommentResponse, createComment, updateComment } from '@/utils/api'
+import { getPostById, deletePost, PostResponse, getCommentsByPostId, CommentResponse, createComment, updateComment, deleteComment } from '@/utils/api'
 
 interface User {
   id: number
@@ -161,6 +161,24 @@ export default function PostDetailPage() {
       }
     } finally {
       setIsUpdatingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!confirm('本当にこのコメントを削除しますか？')) {
+      return
+    }
+
+    try {
+      await deleteComment(Number(postId), commentId)
+      // コメント削除成功後、コメント一覧を再取得
+      await fetchComments()
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message)
+      } else {
+        alert('コメントの削除に失敗しました')
+      }
     }
   }
 
@@ -480,7 +498,7 @@ export default function PostDetailPage() {
                     </div>
                     
                     {!isEditing && isCommentOwner && (
-                      <div style={{ marginLeft: '1rem' }}>
+                      <div style={{ marginLeft: '1rem', display: 'flex', gap: '0.5rem' }}>
                         <button
                           onClick={() => handleStartEdit(comment)}
                           style={{
@@ -495,6 +513,21 @@ export default function PostDetailPage() {
                           }}
                         >
                           編集
+                        </button>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          削除
                         </button>
                       </div>
                     )}
